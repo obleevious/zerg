@@ -45,13 +45,122 @@
             PIXI.loader
                 .add('images/eyja.png')
                 .load(setup);
-            
+
+            let eyja, state;
+
+            function keyboard(value) {
+                let key = {};
+                key.value = value;
+                key.isDown = false;
+                key.isUp = true;
+                key.press = undefined;
+                key.release = undefined;
+
+                key.downHandler = event => {
+                    if (event.key === key.value) {
+                        if (key.isUp && key.press) key.press();
+                        key.isDown = true;
+                        key.isUp = false;
+                        event.preventDefault();
+                    }
+                };
+
+                key.upHandler = event => {
+                    if (event.key === key.value) {
+                        if (key.isDown && key.release) key.release();
+                        key.isDown = false;
+                        key.isUp = true;
+                        event.preventDefault();
+                    }
+                };
+
+                const downListener = key.downHandler.bind(key);
+                const upListener = key.upHandler.bind(key);
+
+                window.addEventListener(
+                    "keydown", downListener, false
+                );
+                window.addEventListener(
+                    "keyup", upListener, false
+                );
+                key.unsubscribe = () => {
+                    window.removeEventListener("keydown", downListener);
+                    window.removeEventListener("keyup", upListener);
+                };
+
+                return key;
+            }
+
             function setup() {
-                let eyja = new PIXI.Sprite(PIXI.loader.resources['images/eyja.png'].texture);
+                eyja = new PIXI.Sprite(PIXI.loader.resources['images/eyja.png'].texture);
                 eyja.texture.baseTexture.mipmap = true;
                 eyja.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST; 
                 app.stage.addChild(eyja);
                 eyja.scale.set(0.1, 0.1);
+                eyja.vx = 0;
+                eyja.vy = 0;
+
+                let left = keyboard("ArrowLeft"),
+                up = keyboard("ArrowUp"),
+                right = keyboard("ArrowRight"),
+                down = keyboard("ArrowDown");
+
+                left.press = () => {
+                    eyja.vx = -5;
+                    eyja.vy = 0;
+                }
+
+                left.release = () => {
+                    if (!right.isDown && eyja.vy === 0) {
+                        eyja.vx = 0;
+                    }
+                }
+
+                right.press = () => {
+                    eyja.vx = 5;
+                    eyja.vy = 0;
+                }
+
+                right.release = () => {
+                    if (!left.isDown && eyja.vy === 0) {
+                        eyja.vx = 0;
+                    }
+                }
+
+                up.press = () => {
+                    eyja.vx = 0;
+                    eyja.vy = -5;
+                }
+
+                up.release = () => {
+                    if (!down.isDown && eyja.vx === 0) {
+                        eyja.vy = 0;
+                    }
+                }
+
+                down.press = () => {
+                    eyja.vx = 0;
+                    eyja.vy = 5;
+                }
+
+                down.release = () => {
+                    if (!up.isDown && eyja.vx === 0) {
+                        eyja.vy = 0;
+                    }
+                }
+
+                state = play;
+
+                app.ticker.add(delta => gameLoop(delta));
+            }
+
+            function gameLoop(delta) {
+                state(delta);
+            }
+
+            function play(delta){
+                eyja.x += eyja.vx;
+                eyja.y += eyja.vy;
             }
 
         </script>
